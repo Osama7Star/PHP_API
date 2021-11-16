@@ -120,108 +120,7 @@ class RecipeController extends ActiveController
         }
     }
 
-        //get the step with instructions and it's ingridents and image of ingrident
-        public function actionRecipe()
-        {
-
-          if (!empty($_GET)) {
-              $model = new $this->modelClass;            
-              try {
-                 
-                  $request = Yii::$app->request;
-                  $lang = $request->get('lang', null);
-                  
-                  $recipe_id   = $request->get('recipeID', null);
-                  $lang = $request->get('lang', null);
-  
-                  $name = "e_name as recipe_name";
-                  $ingredient_name = "e_name as ingredient_name";
-                  $small_desc = "e_small_desc as small_desc";
-                  $desc = "e_desc as desc";
-                  if($lang == 'ar'){
-                      $name = "a_name as recipe_name";
-                      $small_desc = "a_small_desc as small_desc";
-                      $desc = "a_desc as desc";
-                      $ingredient_name = "a_name as ingredient_name";
-                  }              
-            
-            $recipe = "SELECT distinct recipe.e_name ,recipe.e_desc,recipe.e_small_desc,recipe.image,recipe.period,recipe.person_count               
-            FROM recipe                     
-            where recipe.recipe_id = $recipe_id";
-            
-            $recipe =Yii::$app->db->createCommand($recipe)->queryAll();
-
-            $data = $o = (object) [];
-
-            if(count($recipe)>0){
-              $data->name = $recipe[0]['e_name'];
-              $data->desc = $recipe[0]['e_desc'];
-              $data->image = $recipe[0]['image'];
-              $data->period = $recipe[0]['period'];
-              $data->person_count = $recipe[0]['person_count'];
-              
-          }
-
-            $steps_id = "SELECT distinct recipe_step.recipe_step_id
-            FROM recipe
-            inner join recipe_step on recipe_step.recipe_id = recipe.recipe_id              
-            where recipe.recipe_id = $recipe_id";
-         
-            $steps_id_list =Yii::$app->db->createCommand($steps_id)->queryAll();
-            $data->steps_number = count($steps_id_list);
-            // $data->steps = [];
-            //$data->ingridents = [];
-            //$data->nutrution = [];
-            if(count($steps_id_list)>0){
-              $result = array();
-              foreach($steps_id_list as $key=>$value){
-                  // echo $k;
-                  $recipe_step_id   = $value['recipe_step_id']; 
-                  // echo         $recipe_step_id.' ';      
-                  $recipes = "SELECT distinct recipe_step.instruction ,recipe_step_ingredient.amount,
-                  recipe_step_ingredient.measure_unit,ingredient.e_name ,ingredient.image
-                  FROM recipe_step        
-                  inner join recipe_step_ingredient on recipe_step.recipe_step_id = recipe_step_ingredient.recipe_step_id
-                  inner join ingredient on recipe_step_ingredient.ingredient_id = ingredient.ingredient_id        
-                  where recipe_step.recipe_step_id = $recipe_step_id";
-                  
-                  $recipes =Yii::$app->db->createCommand($recipes)->queryAll();                                  
-                  
-                  if(count($recipes)>0){
-                      foreach($recipes as $k=>$v){
-                          $data->ingredients[] = array('amount' => $v['amount'],'measure_unit' => $v['measure_unit'],'e_name' => $v['e_name'],'image' => $v['image']);
-                          //array_push($result,$v['e_name']);                        
-                      }
-                  }
-              }
-              //$data->ingridents= $result;
-            }
-
-            //nurition
-            $nurition = "SELECT distinct nutrition.*
-            FROM recipe
-            inner join nutrition on recipe.recipe_id = nutrition.recipe_id              
-            where recipe.recipe_id = $recipe_id";
-         
-            $nurition_list =Yii::$app->db->createCommand($nurition)->queryAll();
-            $result_nurition = array();
-            foreach($nurition_list as $k=>$v){
-                $data->nutrution[] = array('calories' => $v['calories'],'energy' => $v['energy'],'fat' => $v['fat'],'carp' => $v['carp'],'proten' => $v['proten']);                
-            }
- 
-        //   $data->nutrution = $result_nurition;  
-          return $data;            
-              }
-               catch (Exception $ex) {
-                  throw new \yii\web\HttpException(500, 'Internal server error');
-              }
-          } else {
-              throw new \yii\web\HttpException(400, 'There are no query string Plese Enter Recipe ID ');
-          }
-      }
-
-// 
-
+       
 //--Get recipe with Page index and PageIndex size and filter 
 public function actionProducts()
 {
@@ -467,7 +366,7 @@ public function actionGetbooks()
     
       
          $query  = new \yii\db\Query();
-            $query = $query->select(['bookId','bookName','rate','imageUrl'])->from('books') ;
+            $query = $query->select(['bookId','ISBN','bookName','rate','imageUrl'])->from('books') ;
              // $query->Where(['equal', 'id', 16]);
             
             $provider = new ActiveDataProvider([
@@ -507,20 +406,59 @@ public function actionGetbooks()
 public function actionGetauthors()
 {
     
+    
       $query  = new \yii\db\Query();
+      
+           $request   = Yii::$app->request;
+           $pageSize  = $request->get('numberOfAuthors', 9); 
+           
+          
               $query = $query->select(['*'])->from('author') ;
 
-            $provider = new ActiveDataProvider([
+            
+              $provider = new ActiveDataProvider([
                 'query' => $query,
                 'sort' => [
                     'defaultOrder' => [
                     ]
                 ],
-                  'pagination' => [
-            ],
+                   'pagination' => 
+                  [
+                  'defaultPageSize' => $pageSize ,
+                   ],
             ]);
 
             return $provider ;
+}
+
+
+public function actionGetauthorinfo()
+{
+    
+    
+     if (!empty($_GET)) {               
+        try {            
+            $request = Yii::$app->request;
+
+
+             $authorId =  $request->get('authorId', 80);
+                
+                            $reviews = "SELECT * FROM author where authorId=$authorId";
+                  
+            $result =Yii::$app->db->createCommand($reviews)->queryAll();                                  
+        }
+         catch (Exception $ex) {
+            throw new \yii\web\HttpException(500, 'Internal server error');
+        }
+
+        if (count($result) <= 0) {
+            throw new \yii\web\HttpException(404, 'No entries found with this query string');
+        } else {
+            return $result;
+        }
+    } else {
+        throw new \yii\web\HttpException(400, 'There are no query string');
+    }
 }
 
 
@@ -532,11 +470,13 @@ public function actionGetcategories()
 
 
             if (!empty($_GET)) {
-        $model = new $this->modelClass;            
+        $model = new $this->modelClass;   
+        
         try {
-           $query  = new \yii\db\Query();
+              $query  = new \yii\db\Query();
+                  $request   = Yii::$app->request;
+           $pageSize  = $request->get('numbercategories', 6); 
               $query = $query->select(['*'])->from('category') ;
-
 
            
             $provider = new ActiveDataProvider([
@@ -545,9 +485,10 @@ public function actionGetcategories()
                     'defaultOrder' => [
                     ]
                 ],
-                  'pagination' => [
-                  'defaultPageSize' =>3,
-            ],
+                   'pagination' => 
+                  [
+                  'defaultPageSize' =>$pageSize,
+                   ],
             ]);
         }
          catch (Exception $ex) {
@@ -645,7 +586,7 @@ public function actionGetauthor()
 }
 
 
-public function actionGetauthorbooks()
+public function actionGetauthorbooks1()
 {
     
       if (!empty($_GET)) {
@@ -654,7 +595,7 @@ public function actionGetauthorbooks()
             $query  = new \yii\db\Query();
                         $request = Yii::$app->request;
 
-            $authorId =  $request->get('authorid', null);
+            $authorId =  $request->get('authorid', 10);
 
               $query = $query->select(['*'])->from('books') ;
                 $query->where("books.authorId = $authorId");    
@@ -670,7 +611,7 @@ public function actionGetauthorbooks()
                 ],
                   'pagination' => 
                   [
-                  'defaultPageSize' =>3,
+                  
                    ],
             ]);
         }
@@ -689,45 +630,59 @@ public function actionGetauthorbooks()
 }
 
 ////// GET ALL BOOKS'S INFORMATION BY BOOK ID
-public function actionGetbookinformation()
+public function actionGetbookbyid()
 {
-    
-      if (!empty($_GET)) {
-        $model = new $this->modelClass;            
-        try {
-            $query  = new \yii\db\Query();
-                        $request = Yii::$app->request;
-
-            $bookid =  $request->get('bookid', 2);
-
-              $query = $query->select(['*'])->from('books') ;
-                $query->where("books.bookId = $bookid");    
+      if (!empty($_GET)) {               
+        try {            
+            $request = Yii::$app->request;
+            $bookId =  $request->get('bookId', 26);
 
 
-            if(!empty($bookid)){                         
-            }
-            $provider = new ActiveDataProvider([
-                'query' => $query,
-                'sort' => 
-                [
-                    'defaultOrder' => []
-                ],
-                  'pagination' => 
-                  [
-                   ],
-            ]);
+            $reviews = "select * from books
+            inner join author on books.authorId=author.authorId  
+            inner join category on books.categoryId=category.categoryId 
+            where books.bookId='$bookId'
+            ";
+                  
+            $result =Yii::$app->db->createCommand($reviews)->queryAll();                                  
         }
          catch (Exception $ex) {
             throw new \yii\web\HttpException(500, 'Internal server error');
         }
 
-        if ($provider->getCount() <= 0) {
+        if (count($result) <= 0) {
             throw new \yii\web\HttpException(404, 'No entries found with this query string');
         } else {
-            return $provider;
+            return $result;
         }
-    } else
-     {
+    } else {
+        throw new \yii\web\HttpException(400, 'There are no query string');
+    }
+}
+
+//// GET BOOK BY ISBN
+public function actionGetbookbyisbn()
+{
+      if (!empty($_GET)) {               
+        try {            
+            $request = Yii::$app->request;
+            $ISBN =  $request->get('ISBN', 'a1');
+
+
+            $reviews = "select * from books where books.ISBN='$ISBN' ";
+                  
+            $result =Yii::$app->db->createCommand($reviews)->queryAll();                                  
+        }
+         catch (Exception $ex) {
+            throw new \yii\web\HttpException(500, 'Internal server error');
+        }
+
+        if (count($result) <= 0) {
+           return $result; 
+        } else {
+            return $result;
+        }
+    } else {
         throw new \yii\web\HttpException(400, 'There are no query string');
     }
 }
@@ -780,43 +735,28 @@ public  function  actionGetcategoryname(){
 
 
 public  function  actionGetbookreview(){
- if (!empty($_GET)) {
-        $model = new $this->modelClass;            
-        try {
-            $query  = new \yii\db\Query();
-                        $request = Yii::$app->request;
-
-            $bookId =  $request->get('bookid', null);
-
-              $query = $query->select(['*'])->from('reviews') ;
-                $query->where("reviews.bookId = $bookId");    
+ if (!empty($_GET)) {               
+        try {            
+            $request = Yii::$app->request;
+            $bookId =  $request->get('bookId', '1');
 
 
-            if(!empty($bookId)){                         
-            }
-            $provider = new ActiveDataProvider([
-                'query' => $query,
-                'sort' => 
-                [
-                    'defaultOrder' => []
-                ],
-                  'pagination' => 
-                  [
-                   ],
-            ]);
+            $reviews = "select * from reviews where reviews.bookId='$bookId' ORDER BY rate DESC ";
+                  
+            $result =Yii::$app->db->createCommand($reviews)->queryAll();                                  
         }
          catch (Exception $ex) {
             throw new \yii\web\HttpException(500, 'Internal server error');
         }
 
-        if ($provider->getCount() <= 0) {
+        if (count($result) <= 0) {
             throw new \yii\web\HttpException(404, 'No entries found with this query string');
         } else {
-            return $provider;
+            return $result;
         }
     } else {
         throw new \yii\web\HttpException(400, 'There are no query string');
-    } 
+    }
 }
 
 
@@ -829,7 +769,7 @@ public function actionGetcategorybook()
             $query  = new \yii\db\Query();
                         $request = Yii::$app->request;
 
-            $categoryId =  $request->get('categoryid', 1);
+            $categoryId =  $request->get('categoryid', 30);
 
               $query = $query->select(['*'])->from('books') ;
                 $query->where("books.categoryId = $categoryId");    
@@ -839,13 +779,11 @@ public function actionGetcategorybook()
             }
             $provider = new ActiveDataProvider([
                 'query' => $query,
-                'sort' => 
-                [
-                    'defaultOrder' => []
-                ],
-                  'pagination' => 
+                 'pagination' => 
                   [
+                  'defaultPageSize' =>70,
                    ],
+                 
             ]);
         }
          catch (Exception $ex) {
@@ -870,10 +808,10 @@ public function actionGetcategorybook()
             $request = Yii::$app->request;
             $bookId =  $request->get('bookid', 1);
 
-            $reviews = "SELECT distinct userName, review, rate,imageUrl,reviewId ,date,reviews.userId
+            $reviews = "SELECT distinct userName,fullName, review, rate,imageUrl,reviewId ,date,reviews.userId
                   FROM reviews        
                   inner join users on reviews.userId = users.userId
-                  where reviews.bookId = $bookId";
+                  where reviews.bookId = $bookId order by reviewId desc";
                   
             $result =Yii::$app->db->createCommand($reviews)->queryAll();                                  
         }
@@ -901,11 +839,14 @@ public function actionGetsearchbook()
                         $request = Yii::$app->request;
 
               $text =  $request->get('text', "هكذا");
-
+            
+         ltrim($text); 
               $query = $query->select(['*'])->from('books') ;
                  $query->Where(['like', 'books.bookName', $text]);
-
-
+                 $query->orWhere(['like', 'books.tag1', $text]); 
+                 $query->orWhere(['like', 'books.tag2', $text]); 
+                 $query->orWhere(['like', 'books.tag3', $text]); 
+                 $query->orWhere(['like', 'books.ISBN', $text]);
        
             if(!empty($text)){                         
             }
@@ -990,7 +931,10 @@ public  function  actionGetsuggestedbook(){
     if (!empty($_GET)) {
         try {
             $request = Yii::$app->request;
-            $bookId =  $request->get('bookid', null);
+            $bookName =  $request->get('bookName', 546);
+            $authorName =  $request->get('authorName', 564);
+            $note =  $request->get('note', 644645);
+            $userId =  $request->get('userId', 1);
 
             // $reviews = "SELECT distinct userName, review, rate
             //       FROM reviews
@@ -999,11 +943,11 @@ public  function  actionGetsuggestedbook(){
                   
             // $result =Yii::$app->db->createCommand($reviews)->queryAll();
             
-            $result =Yii::$app->db->createCommand()->insert('reviews', [
-                'review' => 'new data ahmad test 222 ',
-                'userId' =>'1',
-                'bookId' =>'2',
-                'rate'   =>'3',
+            $result =Yii::$app->db->createCommand()->insert('suggestedbooks', [
+                'bookName' =>  $bookName,
+                'bookAuthor' =>$authorName,
+                'userId' =>$userId,
+                'note'   => $note,
                 'date'   =>'1-2-2'
             ])->execute();
         }
@@ -1020,6 +964,888 @@ public  function  actionGetsuggestedbook(){
         throw new \yii\web\HttpException(400, 'There are no query string');
     } 
 }
+
+
+///// MOST RATED BOOKS 
+public function actionGetmostratedbooks()
+{
+    
+         $query  = new \yii\db\Query();
+            $query = $query->select(['bookId','bookName','rate','imageUrl','ISBN'])->from('books') ;
+             // $query->Where(['equal', 'id', 16]);
+            
+            $provider = new ActiveDataProvider([
+                'query' => $query,
+                'sort' => [
+                    'defaultOrder' => [
+                    ]
+                ],
+                  'pagination' => [
+            ],
+            ]);
+
+   $provider = new ActiveDataProvider([
+                    'query' => $query,
+                    'sort' => [
+                        'defaultOrder' => [
+                            // 'recipe_id'=> SORT_DESC
+                        ]
+                    ],
+                      'pagination' => [
+                    'defaultPageSize' => 4,
+                    'page' => $PageIndex 
+                ],
+                ]);
+            return $provider ;
+} 
+
+//// GET THE BOOKS FROM FIRST CATEGORY 
+public function actionGetcategory1books()
+    {
+          if (!empty($_GET)) {               
+        try {            
+            $request = Yii::$app->request;
+
+           $reviews = "select * from books inner join category on books.categoryId=category.categoryId 
+               where books.categoryId = 19" ;
+                      
+            $result =Yii::$app->db->createCommand($reviews)->queryAll();                                  
+        }
+         catch (Exception $ex) {
+            throw new \yii\web\HttpException(500, 'Internal server error');
+        }
+
+        if (count($result) <= 0) {
+            throw new \yii\web\HttpException(404, 'No entries found with this query string');
+        } else {
+            return $result;
+        }
+    } else {
+        throw new \yii\web\HttpException(400, 'There are no query string');
+
+       
+       
+            }
+    }
+
+    //// GET THE BOOKS FROM SECOND CATEGORY 
+public function actionGetcategory2books()
+    {
+        
+          if (!empty($_GET)) {               
+        try {            
+            $request = Yii::$app->request;
+
+           $reviews = "select * from books inner join category on books.categoryId=category.categoryId 
+               where books.categoryId = 20" ;
+                      
+            $result =Yii::$app->db->createCommand($reviews)->queryAll();                                  
+        }
+         catch (Exception $ex) {
+            throw new \yii\web\HttpException(500, 'Internal server error');
+        }
+
+        if (count($result) <= 0) {
+            throw new \yii\web\HttpException(404, 'No entries found with this query string');
+        } else {
+            return $result;
+        }
+    } else {
+        throw new \yii\web\HttpException(400, 'There are no query string');
+
+       
+       
+            }
+    }
+    
+    //// GET THE BOOKS FROM THIRD CATEGORY 
+public function actionGetcategory3books()
+    {
+        
+          if (!empty($_GET)) {               
+        try {            
+            $request = Yii::$app->request;
+
+           $reviews = "select * from books inner join category on books.categoryId=category.categoryId 
+               where books.categoryId = 21" ;
+                      
+            $result =Yii::$app->db->createCommand($reviews)->queryAll();                                  
+        }
+         catch (Exception $ex) {
+            throw new \yii\web\HttpException(500, 'Internal server error');
+        }
+
+        if (count($result) <= 0) {
+            throw new \yii\web\HttpException(404, 'No entries found with this query string');
+        } else {
+            return $result;
+        }
+    } else {
+        throw new \yii\web\HttpException(400, 'There are no query string');
+
+       
+       
+            }
+    }
+    
+    public function actionGetuserinformation()
+        {
+            
+            $query  = new \yii\db\Query();
+             $request = Yii::$app->request;
+             $userid = $request->get('userid', 2);
+            $query = $query->select(['*'])->from('users') ;
+             $query->where("userId = $userid"); 
+             
+            $provider = new ActiveDataProvider([
+                'query' => $query,
+                'sort' => [
+                    'defaultOrder' => [
+                    ]
+                ],
+                  'pagination' => [
+            ],
+            ]);
+
+   $provider = new ActiveDataProvider([
+                    'query' => $query,
+                    'sort' => [
+                        'defaultOrder' => [
+                            // 'recipe_id'=> SORT_DESC
+                        ]
+                    ],
+                      'pagination' => [
+                    'defaultPageSize' => 4,
+                    'page' => $PageIndex 
+                ],
+                ]);
+            return $provider ;
+        }
+        
+        
+        public function actionGetquotes()
+            {
+                if (!empty($_GET)) {               
+        try {            
+            $request = Yii::$app->request;
+            $bookId =  $request->get('bookid', 1);
+
+           $reviews = "SELECT quoteId, quote, likeNumbers,date,quotes.userId,userName,fullName,imageUrl
+                  FROM quotes        
+                  inner join users on quotes.userId = users.userId
+                  order by quoteId DESC" ;
+                  
+            $result =Yii::$app->db->createCommand($reviews)->queryAll();                                  
+        }
+         catch (Exception $ex) {
+            throw new \yii\web\HttpException(500, 'Internal server error');
+        }
+
+        if (count($result) <= 0) {
+            throw new \yii\web\HttpException(404, 'No entries found with this query string');
+        } else {
+            return $result;
+        }
+    } else {
+        throw new \yii\web\HttpException(400, 'There are no query string');
+
+       
+       
+            }}
+            
+            /////
+            
+            public function actionGetbooksborrowingrecords()
+            {
+                
+                 if (!empty($_GET)) {               
+        try {            
+            $request = Yii::$app->request;
+            $bookId =  $request->get('bookid', 1);
+
+           $reviews = "SELECT DISTINCT  borrowingRecordId, borrowing_record.bookId,borrowing_record.userId,bookName,userName,fullName,startDate,users.imageUrl
+                  FROM borrowing_record        
+                  inner join users on borrowing_record.userId = users.userId
+                  inner join books on borrowing_record.bookId = books.bookId
+                  where share=1
+                  order by borrowingRecordId DESC" ;
+                  
+            $result =Yii::$app->db->createCommand($reviews)->queryAll();                                  
+        }
+         catch (Exception $ex) {
+            throw new \yii\web\HttpException(500, 'Internal server error');
+        }
+
+        if (count($result) <= 0) {
+            throw new \yii\web\HttpException(404, 'No entries found with this query string');
+        } else {
+            return $result;
+        }
+    } else {
+        throw new \yii\web\HttpException(400, 'There are no query string');
+
+       
+       
+            }
+            }
+            
+            
+            //// get the users' quotes 
+            
+            public function actionGetuserquotes()
+            {
+                
+                     
+                 if (!empty($_GET)) {               
+        try {            
+            $request = Yii::$app->request;
+            $userId =  $request->get('userId', 2);
+
+           $reviews = "SELECT quoteId, quote, quotes.userId, likeNumbers, date,imageUrl,userName,fullName from quotes     
+                  inner join users on quotes.userId = users.userId
+                  
+                  where quotes.userId=$userId
+                   order by quoteId DESC" ;
+           
+                  
+            $result =Yii::$app->db->createCommand($reviews)->queryAll();                                  
+        }
+         catch (Exception $ex) {
+            throw new \yii\web\HttpException(500, 'Internal server error');
+        }
+
+        if (count($result) <= 0) {
+            
+                        throw new \yii\web\HttpException(404, 'No entries found with this query string');
+
+        } else {
+                        
+                        return $result;
+
+        }
+    } else {
+        throw new \yii\web\HttpException(400, 'There are no query string');
+
+       
+       
+            }
+            }
+              
+              
+              //////// GET USERS' REVIEWS
+              
+              public function actionGetuserreviews()
+              {
+                     if (!empty($_GET)) {               
+        try {            
+            $request = Yii::$app->request;
+            $userId =  $request->get('userId', 1);
+
+           $reviews = "SELECT reviewId,review,rate,date,userName,fullName,imageUrl,reviews.userId,reviews.bookId
+                  FROM reviews        
+                  inner join users on reviews.userId = users.userId
+                  
+                  where reviews.userId=$userId order by reviewId desc" ;
+                  
+            $result =Yii::$app->db->createCommand($reviews)->queryAll();                                  
+        }
+         catch (Exception $ex) {
+            throw new \yii\web\HttpException(500, 'Internal server error');
+        }
+
+        if (count($result) <= 0) {
+            throw new \yii\web\HttpException(404, 'No entries found with this query string');
+        } else {
+            return $result;
+        }
+    } else {
+        throw new \yii\web\HttpException(400, 'There are no query string');
+
+       
+       
+            }
+              }
+              
+              
+              //// GET USERS' BOOKS
+              
+              public function actionGetuserrebooks()
+              {
+                      if (!empty($_GET)) {               
+        try {            
+            $request = Yii::$app->request;
+            $userId =  $request->get('userId', 1);
+
+           $reviews = "SELECT borrowingRecordId,fullName, borrowing_record.bookId,borrowing_record.userId,books.bookName,books.imageUrl,borrowing_record.startDate
+                  FROM borrowing_record        
+                  inner join users on borrowing_record.userId = users.userId
+                  inner join books on borrowing_record.bookId = books.bookId
+                  where borrowing_record.userId='$userId' and borrowing_record.share=!0  order by startDate DESC" ;
+                  
+            $result =Yii::$app->db->createCommand($reviews)->queryAll();                                  
+        }
+         catch (Exception $ex) {
+            throw new \yii\web\HttpException(500, 'Internal server error');
+        }
+
+        if (count($result) <= 0) {
+            throw new \yii\web\HttpException(404, 'No entries found with this query string');
+        } else {
+            return $result;
+        }
+    } else {
+        throw new \yii\web\HttpException(400, 'There are no query string');
+
+       
+       
+            }
+              
+              }
+              
+              
+              ///// SEARCH BOOKS BY TAGS
+              
+              public function actionSearchbytag()
+              {
+                   if (!empty($_GET)) {
+        $model = new $this->modelClass;            
+        try {
+            $query  = new \yii\db\Query();
+                        $request = Yii::$app->request;
+
+              $text =  $request->get('tag', "العلمانية");
+
+              $query = $query->select(['*'])->from('books') ;
+                 $query->Where(['like', 'books.tag1', $text]);
+                 $query->orWhere(['like', 'books.tag2', $text]); 
+                 $query->orWhere(['like', 'books.tag3', $text]); 
+
+
+
+
+            
+
+       
+            if(!empty($text)){                         
+            }
+            $provider = new ActiveDataProvider([
+                'query' => $query,
+                'sort' => 
+                [
+                    'defaultOrder' => []
+                ],
+                  'pagination' => 
+                  [
+                   ],
+            ]);
+        }
+         catch (Exception $ex) {
+            throw new \yii\web\HttpException(500, 'Internal server error');
+        }
+
+        if ($provider->getCount() <= 0) {
+            throw new \yii\web\HttpException(404, 'No entries found with this query string');
+        } else {
+            return $provider;
+        }
+    } else {
+        throw new \yii\web\HttpException(400, 'There are no query string');
+    } 
+              }
+              
+              
+              
+             ////////////////INSERT USER REVIEW
+              public function actionAddreview()
+              {
+                  if (!empty($_GET)) {
+        try {
+            $request = Yii::$app->request;
+            $review =  $request->get('review', 10);
+            $rate   =  $request->get('rate', 10);
+            $bookId =  $request->get('bookId', 10);
+            $userId =  $request->get('userId', 10);
+            
+    date_default_timezone_set('Europe/Istanbul');
+
+            $date = date("Y/m/d");
+            
+            $result =Yii::$app->db->createCommand()->insert('reviews', [
+                'review' => $review,
+                'userId' =>$userId,
+                'bookId' =>$bookId,
+                'rate'   =>$rate,
+                'date'   =>$date
+            ])->execute();
+        }
+         catch (Exception $ex) {
+            throw new \yii\web\HttpException(500, 'Internal server error');
+        }
+
+        if ($result <= 0) {
+            throw new \yii\web\HttpException(404, 'Error with adding the new record');
+        } else {
+            return $result;
+        }
+    } else {
+        throw new \yii\web\HttpException(400, 'There are no query string');
+    } 
+              }
+              
+              
+              
+              //// ADD QUOTE 
+              
+              public function actionAddquote()
+              {
+  if (!empty($_GET)) {
+        try {
+            $request = Yii::$app->request;
+            $quote =  $request->get('quote', 10);
+            $likeNumbers   =  $request->get('likeNumbers', 10);
+            $userId =  $request->get('userId', 10);
+            
+
+          date_default_timezone_set('Europe/Istanbul');
+
+            $date = date("Y/m/d");
+            
+            $result =Yii::$app->db->createCommand()->insert('quotes', [
+                'quote' =>  $quote,
+                'userId' =>$userId,
+                'likeNumbers'  =>$likeNumbers,
+                'date'   =>$date
+            ])->execute();
+        }
+         catch (Exception $ex) {
+            throw new \yii\web\HttpException(500, 'Internal server error');
+        }
+
+        if ($result <= 0) {
+            throw new \yii\web\HttpException(404, 'Error with adding the new record');
+        } else {
+            return $result;
+        }
+    } else {
+        throw new \yii\web\HttpException(400, 'There are no query string');
+    } 
+           
+              }
+              
+              
+              
+              ///// get author names for the books
+              
+              public function actionGetauthorname()
+              {
+                 if (!empty($_GET)) {               
+        try {            
+            $request = Yii::$app->request;
+           $bookId =  $request->get('bookId', 26);
+
+            $reviews = "SELECT book_author.authorId,authrorName,imageUrl,authorBio
+                  FROM book_author        
+                  inner join author on author.authorId = book_author.authorId
+                  where book_author.bookId = $bookId";
+                  
+            $result =Yii::$app->db->createCommand($reviews)->queryAll();                                  
+        }
+         catch (Exception $ex) {
+            throw new \yii\web\HttpException(500, 'Internal server error');
+        }
+
+        if (count($result) <= 0) {
+            throw new \yii\web\HttpException(404, 'No entries found with this query string');
+        } else {
+            return $result;
+        }
+    } else {
+        throw new \yii\web\HttpException(400, 'There are no query string');
+
+       
+       
+            }  
+              }
+              
+              /////////// GET AUTHOR INFORMATION LIKE(NAME, BIO ,IMAGE)
+                    
+              
+              
+              
+              ////////////
+              
+              
+              /// get the informations of user who borrowed the book 
+              
+              public function actionGetborrowedinfo()
+              {
+                  
+                  if (!empty($_GET)) {               
+        try {            
+            $request = Yii::$app->request;
+           $bookId =  $request->get('bookId', 'a1');
+
+            $reviews = "SELECT distinct fullName,users.userId,	endDate
+                  FROM borrowing_record        
+                  inner join users on users.userId = borrowing_record.userId
+                  where borrowing_record.bookId = '$bookId' order by borrowingRecordId desc";
+                  
+            $result =Yii::$app->db->createCommand($reviews)->queryAll();                                  
+        }
+         catch (Exception $ex) {
+            throw new \yii\web\HttpException(500, 'Internal server error');
+        }
+
+        if (count($result) <= 0) {
+            throw new \yii\web\HttpException(404, 'No entries found with this query string');
+        } else {
+            return $result;
+        }
+    } else {
+        throw new \yii\web\HttpException(400, 'There are no query string');
+
+       
+       
+            } 
+              }
+              
+              
+              ///// ADD THE INFORMATION OF BORROWING BOOK 
+              public function actionAddbookborrowing()
+              {
+                  if (!empty($_GET)) {
+        try {
+            
+            $request = Yii::$app->request;
+                        date_default_timezone_set('Europe/Istanbul');
+
+            $startDate = date("Y/m/d");
+            $userId    =  $request->get('userId', 10);
+            $bookId    =  $request->get('bookId', 10);
+            $endDate   =  $request->get('endDate', 1);
+            $share     =  $request->get('share', 1);
+            
+          //  $endDate = "2012/12/13";
+            
+            $endDate = strtotime($endDate);
+        
+             $endDate =  date("Y/m/d", $endDate);
+             
+            $result =Yii::$app->db->createCommand()->insert('borrowing_record', [
+               
+                'userId' =>$userId,
+                'bookId'  =>$bookId,
+                'startDate'   =>$startDate,
+                'endDate'   =>$endDate,
+                'share' =>$share,
+                
+            ])->execute();
+        }
+         catch (Exception $ex) {
+            throw new \yii\web\HttpException(500, 'Internal server error');
+        }
+
+        if ($result <= 0) {
+            throw new \yii\web\HttpException(404, 'Error with adding the new record');
+        } else {
+            return $result;
+        }
+    } else {
+        throw new \yii\web\HttpException(400, 'There are no query string');
+    } 
+              }
+              
+              
+              // UPDATE BOOK'S STATUS 
+              
+     public function actionUpdatebookstatus()
+     {
+        if (!empty($_GET)) {               
+        try {            
+            $request = Yii::$app->request;
+            $bookId =  $request->get('bookId', 4);
+            $booStatus =  $request->get('bookStatus', 0);
+            $userId =  $request->get('userId', 0);
+            $borrowingCount = $request->get('borrowingCount', 0);
+
+
+            $reviews = "UPDATE books SET bookstatus = '$booStatus',userId = '$userId', borrowingsCounts = '$borrowingCount'  WHERE bookId = $bookId";
+                  
+            $result =Yii::$app->db->createCommand($reviews)->execute();                                  
+        }
+         catch (Exception $ex) {
+            throw new \yii\web\HttpException(500, 'Internal server erbror');
+        }
+
+        if ($result < 0) {
+            throw new \yii\web\HttpException(404, 'No entries found with this query string');
+        } else {
+            return $result;
+        }
+    } else {
+        throw new \yii\web\HttpException(400, 'There are no query string');
+
+       
+       
+            } 
+              }
+              
+                public function actionUpdatequotelikes()
+     {
+        if (!empty($_GET)) {               
+        try {            
+            $request = Yii::$app->request;
+            $like =  $request->get('like', 4);
+            $quoteId =  $request->get('quoteId', 70);
+
+
+            $reviews = "UPDATE quotes SET likeNumbers = $like  WHERE quoteId = $quoteId";
+                  
+            $result =Yii::$app->db->createCommand($reviews)->execute();                                  
+        }
+         catch (Exception $ex) {
+            throw new \yii\web\HttpException(500, 'Internal server erbror');
+        }
+
+        if ($result < 1) {
+            throw new \yii\web\HttpException(404, 'No entries found with this query string');
+        } else {
+            return $result;
+        }
+    } else {
+        throw new \yii\web\HttpException(400, 'There are no query string');
+
+       
+       
+            } 
+              }
+              
+              
+                public  function  actionLogin(){
+    if (!empty($_GET)) {               
+        try {            
+            $request = Yii::$app->request;
+            $username =  $request->get('username', 'osama7star');
+            $password =  $request->get('password', 'xx');
+
+            $password = sha1($password);
+            $reviews = "SELECT * from users where username='$username' and password='$password'";
+                  
+            $result =Yii::$app->db->createCommand($reviews)->queryAll();                                  
+        }
+         catch (Exception $ex) {
+            throw new \yii\web\HttpException(500, 'Internal server error');
+        }
+
+        if (count($result) <= 0) {
+            return  $result ;
+        } else {
+            return $result;
+        }
+    } else {
+        throw new \yii\web\HttpException(400, 'There are no query string');
+    } 
 }
 
 
+         
+         
+public  function  actionSignup(){
+    if (!empty($_GET)) {
+        try {
+            $request = Yii::$app->request;
+            $fullName =  $request->get('fullName', 12345);
+            $userName =  $request->get('userName', 56488);
+            $password =  $request->get('password', 123456);
+            $imageUrl =  $request->get('imageUrl', 123456);
+
+            $universityName =  $request->get('universityName', 644645);
+            $collageName =  $request->get('collageName', 644645);
+            $bio  = $request->get('bio', 644645);
+
+            date_default_timezone_set('Europe/Istanbul');
+
+            $startDate = date("Y/m/d");            
+          
+            
+            $result =Yii::$app->db->createCommand()->insert('users', [
+                'userName' =>  $userName,
+                'fullName' =>$fullName,
+                'password' =>sha1($password),
+                'universityName'   => $universityName,
+                'collageName'   =>$collageName ,
+                'bio' => $bio ,
+                'createdDate'=> $startDate,
+                'imageUrl'=>$imageUrl
+            ])->execute();
+        }
+         catch (Exception $ex) {
+            throw new \yii\web\HttpException(500, 'Internal server error');
+        }
+
+        if ($result <= 0) {
+            throw new \yii\web\HttpException(404, 'Error with adding the new record');
+        } else {
+            return $result;
+        }
+    } else {
+        throw new \yii\web\HttpException(400, 'There are no query string');
+    } 
+}
+
+public  function  actionCheckusername(){
+    if (!empty($_GET)) {               
+        try {            
+            $request = Yii::$app->request;
+            $username =  $request->get('userName', 'osama7star');
+
+
+            $reviews = "SELECT * from users where username='$username' ";
+                  
+            $result =Yii::$app->db->createCommand($reviews)->queryAll();                                  
+        }
+         catch (Exception $ex) {
+            throw new \yii\web\HttpException(500, 'Internal server error');
+        }
+
+        if (count($result) <= 0) {
+            return 0 ;
+        } else {
+            return 1;
+        }
+    } else {
+        throw new \yii\web\HttpException(400, 'There are no query string');
+    } 
+}
+
+
+public  function  actionGetendedbook(){
+    if (!empty($_GET)) {               
+        try {            
+            $request = Yii::$app->request;
+            $userId =  $request->get('userId', 1);
+            $nowdate = date("Y/m/d");
+
+           
+
+            $reviews = "SELECT * from  borrowing_record inner join books on   borrowing_record.bookId=books.bookId
+            where  borrowing_record.userId='$userId'   and books.bookStatus=1 and books.userId='$userId'";
+                  
+            $result =Yii::$app->db->createCommand($reviews)->queryAll();                                  
+        }
+         catch (Exception $ex) {
+            throw new \yii\web\HttpException(500, 'Internal server error');
+        }
+
+        if (count($result) <= 0) {
+            return 0 ;
+        } else {
+            return $result;
+        }
+    } else {
+        throw new \yii\web\HttpException(400, 'There are no query string');
+    } 
+}
+
+
+public function actionSearchauthors()
+{
+  if (!empty($_GET)) {
+        $model = new $this->modelClass;            
+        try {
+            $query  = new \yii\db\Query();
+                        $request = Yii::$app->request;
+
+              $text =  $request->get('name', "طارق");
+            
+         ltrim($text); 
+              $query = $query->select(['*'])->from('author') ;
+                 $query->Where(['like', 'author.authrorName', $text]);
+                
+                
+                  
+       
+            if(!empty($text)){                         
+            }
+            $provider = new ActiveDataProvider([
+                'query' => $query,
+                'sort' => 
+                [
+                    'defaultOrder' => []
+                ],
+                  'pagination' => 
+                  [
+                   ],
+            ]);
+        }
+         catch (Exception $ex) {
+            throw new \yii\web\HttpException(500, 'Internal server error');
+        }
+
+        if ($provider->getCount() <= 0) {
+            throw new \yii\web\HttpException(404, 'No entries found with this query string');
+        } else {
+            return $provider;
+        }
+    } else {
+        throw new \yii\web\HttpException(400, 'There are no query string');
+    } 
+  
+}
+
+   
+   
+public  function  actionGetconditions(){
+    if (!empty($_GET)) {               
+        try {            
+            $request = Yii::$app->request;
+            $userId =  $request->get('userId', 1);
+            $nowdate = date("Y/m/d");
+
+           
+
+            $reviews = "SELECT * from configration";
+                  
+            $result =Yii::$app->db->createCommand($reviews)->queryAll();                                  
+        }
+         catch (Exception $ex) {
+            throw new \yii\web\HttpException(500, 'Internal server error');
+        }
+
+        if (count($result) <= 0) {
+            return 0 ;
+        } else {
+            return $result;
+        }
+    } else {
+        throw new \yii\web\HttpException(400, 'There are no query string');
+    } 
+}
+
+
+public function actionGetlastbooks()
+{
+   if (!empty($_GET)) {               
+        try {            
+            $request = Yii::$app->request;
+            $bookId =  $request->get('bookid', 1);
+
+            $reviews = "select * from books order by bookId desc";
+                  
+            $result =Yii::$app->db->createCommand($reviews)->queryAll();                                  
+        }
+         catch (Exception $ex) {
+            throw new \yii\web\HttpException(500, 'Internal server error');
+        }
+
+        if (count($result) <= 0) {
+            throw new \yii\web\HttpException(404, 'No entries found with this query string');
+        } else {
+            return $result;
+        }
+    } else {
+        throw new \yii\web\HttpException(400, 'There are no query string');
+    } 
+}
+   
+}

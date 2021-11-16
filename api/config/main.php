@@ -108,18 +108,40 @@ return [
                         'GET getcategoryname' => 'getcategoryname',
                         'GET getbookreview' => 'getbookreview',
                         'GET getcategorybook' => 'getcategorybook',
-                        'GET getuserinformation1' => 'getuserinformation1',
+                        'GET getuserinformation' => 'getuserinformation',
                         'GET getbookreview1' => 'getbookreview1',
                         'GET getsearchbook' => 'getsearchbook',
 
                         'GET getsuggestedbook' => 'getsuggestedbook',
+                        'GET getconditions' => 'getconditions',
+                        'GET checkusername' => 'checkusername',
+                        'GET signup' => 'signup',
+                        'GET getcategory1books' => 'getcategory1books',
+                        'GET getcategory2books' => 'getcategory2books',
+                        'GET getcategory3books' => 'getcategory3books',
+                        'GET getendedbook' => 'getendedbook',
+                        'GET getmostratedbooks' => 'getmostratedbooks',
+                        'GET getlastbooks' => 'getlastbooks',
+                        'GET addquote' => 'addquote',
+                        'GET getquotes' => 'getquotes',
+                        'GET getbookbyid' => 'getbookbyid',
+                        'GET getauthorbooks1' => 'getauthorbooks1',
+                        'GET searchauthors' => 'searchauthors',
+                        'GET updatequotelikes' => 'updatequotelikes',
+                        'GET updatebookstatus' => 'updatebookstatus',
 
-
-
-
-                        
-
-
+                        'GET addbookborrowing' => 'addbookborrowing',
+                        'GET getborrowedinfo' => 'getborrowedinfo',
+                        'GET getauthorname' => 'getauthorname',
+                        'GET addreview' => 'addreview',
+                        'GET searchbytag' => 'searchbytag',
+                        'GET getuserrebooks' => 'getuserrebooks',
+                        'GET getuserreviews' => 'getuserreviews',
+                        'GET getuserquotes' => 'getuserquotes',
+                        'GET getbooksborrowingrecords' => 'getbooksborrowingrecords',
+                          
+                        'GET getbookbyisbn' => 'getbookbyisbn',
+                        'GET getauthorinfo' => 'getauthorinfo',
 
 
 
